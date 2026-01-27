@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h3>隧道转发</h3>
+      <h3>隧道管理</h3>
     </div>
     <el-card shadow="hover">
       <!-- 搜索栏 -->
@@ -9,7 +9,7 @@
         <div class="filters">
           <el-input
             v-model="searchKeyword"
-            placeholder="搜索名称或目标"
+            placeholder="搜索隧道名称"
             :prefix-icon="Search"
             clearable
             style="width: 250px"
@@ -32,13 +32,14 @@
       <!-- 表格 -->
       <el-table :data="tunnelList" v-loading="loading" style="width: 100%" border>
         <el-table-column prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="name" label="隧道名称" min-width="120" align="center" show-overflow-tooltip />
-        <el-table-column label="入口节点" width="120" align="center">
+        <el-table-column prop="name" label="隧道名称" min-width="150" align="center" show-overflow-tooltip />
+        <el-table-column label="入口节点" width="140" align="center">
           <template #default="{ row }">
             <el-tag size="small" type="primary">{{ row.entry_node?.name || '-' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="出口节点" width="120" align="center">
+        
+        <el-table-column label="出口节点" width="140" align="center">
           <template #default="{ row }">
             <el-tag size="small" type="success">{{ row.exit_node?.name || '-' }}</el-tag>
           </template>
@@ -48,34 +49,14 @@
             <el-tag size="small">{{ row.protocol?.toUpperCase() }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="listen_port" label="监听端口" width="100" align="center" />
-        <el-table-column label="目标地址" min-width="200" align="center" show-overflow-tooltip>
-          <template #default="{ row }">
-              <span v-if="row.targets && row.targets.length > 0">{{ row.targets[0] }}<span v-if="row.targets.length > 1"> (+{{ row.targets.length - 1 }})</span></span>
-              <span v-else>-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="总流量" width="120" align="center">
-          <template #default="{ row }">
-            {{ formatBytes(row.total_bytes || 0) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="上传流量" width="120" align="center">
-          <template #default="{ row }">
-            {{ formatBytes(row.output_bytes || 0) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="下载流量" width="120" align="center">
-          <template #default="{ row }">
-            {{ formatBytes(row.input_bytes || 0) }}
-          </template>
-        </el-table-column>
+        <el-table-column prop="relay_port" label="Relay端口" width="100" align="center" />
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" align="center" fixed="right">
+        <el-table-column prop="remark" label="备注" min-width="150" show-overflow-tooltip />
+        <el-table-column label="操作" width="180" align="center" fixed="right">
           <template #default="{ row }">
             <el-button 
               v-if="row.status !== 'running'" 
@@ -88,7 +69,6 @@
               @click="handleStop(row)"
             >停止</el-button>
             <el-button type="primary" link size="small" @click="openDialog(row)">编辑</el-button>
-            <el-button type="info" link size="small" @click="handleCopy(row)">复制</el-button>
             <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
@@ -112,26 +92,28 @@
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑隧道' : '添加隧道'"
-      width="600px"
+      width="550px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="100px">
         <el-form-item label="隧道名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入隧道名称" :prefix-icon="EditPen" />
         </el-form-item>
-        <el-divider content-position="left">路由配置</el-divider>
+        <el-divider content-position="left">链路配置</el-divider>
         <el-form-item label="入口节点" prop="entry_node_id">
-          <el-select v-model="form.entry_node_id" placeholder="选择入口节点（客户端连接的节点）" style="width: 100%">
+          <el-select v-model="form.entry_node_id" placeholder="选择入口节点" style="width: 100%" :disabled="isEdit">
             <el-option 
               v-for="node in nodeList" 
+              :key="node.id"
               :label="node.name" 
               :value="node.id" 
               :disabled="node.id === form.exit_node_id"
             />
           </el-select>
+          <div class="form-hint">客户端连接的节点</div>
         </el-form-item>
         <el-form-item label="出口节点" prop="exit_node_id">
-          <el-select v-model="form.exit_node_id" placeholder="选择出口节点（访问目标的节点）" style="width: 100%">
+          <el-select v-model="form.exit_node_id" placeholder="选择出口节点" style="width: 100%" :disabled="isEdit">
             <el-option 
               v-for="node in nodeList" 
               :key="node.id" 
@@ -140,9 +122,10 @@
               :disabled="node.id === form.entry_node_id"
             />
           </el-select>
+          <div class="form-hint">流量出口节点，启动时会在该节点创建 Relay 服务</div>
         </el-form-item>
-        <el-divider content-position="left">端口配置</el-divider>
-        <el-row :gutter="16">
+        <el-divider content-position="left">协议配置</el-divider>
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="协议" prop="protocol">
               <el-select v-model="form.protocol" style="width: 100%">
@@ -152,45 +135,13 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="监听端口" prop="listen_port">
-              <el-input-number v-model="form.listen_port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+            <el-form-item label="Relay端口" prop="relay_port">
+              <el-input-number v-model="form.relay_port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+              <div class="form-hint">出口节点 Relay 服务端口</div>
             </el-form-item>
           </el-col>
         </el-row>
-        <el-divider content-position="left">目标地址（最终访问的地址）</el-divider>
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="负载均衡" prop="strategy">
-               <el-select v-model="form.strategy" placeholder="默认为轮询">
-                  <el-option label="轮询 (Round Robin)" value="round"/>
-                  <el-option label="随机 (Random)" value="rand"/>
-                  <el-option label="先进先出 (FIFO)" value="fifo"/>
-                  <el-option label="哈希 (Hash)" value="hash"/>
-               </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="目标列表" style="margin-bottom: 0;">
-           <el-table :data="form.targetList" border style="width: 100%" size="small" :show-header="true">
-              <el-table-column label="目标地址 (IP:Port)" min-width="250">
-                  <template #default="{ row }">
-                      <el-input v-model="row.address" placeholder="例如: 192.168.1.100:8080" />
-                  </template>
-              </el-table-column>
-              <el-table-column label="操作" width="60" align="center">
-                  <template #default="{ $index }">
-                      <el-button type="danger" link :icon="UseRemove" @click="removeTarget($index)" />
-                  </template>
-              </el-table-column>
-           </el-table>
-           <div style="margin-top: 10px; text-align: center; width: 100%;">
-               <el-button type="primary" link :icon="Plus" @click="addTarget" style="width: 100%; border: 1px dashed #dcdfe6;">添加目标地址</el-button>
-           </div>
-        </el-form-item>
-
-
-        <el-form-item label="备注说明" prop="remark">
+        <el-form-item label="备注" prop="remark">
           <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="备注信息" />
         </el-form-item>
       </el-form>
@@ -205,7 +156,7 @@
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh, Search, EditPen, Connection, Link, Location, DataLine, Top, Bottom, Remove as UseRemove } from '@element-plus/icons-vue'
+import { Plus, Refresh, Search, EditPen, Connection } from '@element-plus/icons-vue'
 import { getTunnelList, createTunnel, updateTunnel, deleteTunnel, startTunnel, stopTunnel } from '@/api/tunnel'
 import { getNodeList } from '@/api/node'
 
@@ -236,21 +187,16 @@ const form = reactive({
   entry_node_id: '',
   exit_node_id: '',
   protocol: 'tcp',
-  listen_port: 0,
-
-  targetList: [{ address: '' }],
-  strategy: 'round',
-  relay_port: 0,
+  relay_port: 8443,
   remark: ''
 })
 
-const rules = {
+const formRules = {
   name: [{ required: true, message: '请输入隧道名称', trigger: 'blur' }],
   entry_node_id: [{ required: true, message: '请选择入口节点', trigger: 'change' }],
   exit_node_id: [{ required: true, message: '请选择出口节点', trigger: 'change' }],
   protocol: [{ required: true, message: '请选择协议', trigger: 'change' }],
-  listen_port: [{ required: true, message: '请输入监听端口', trigger: 'blur' }],
-  listen_port: [{ required: true, message: '请输入监听端口', trigger: 'blur' }]
+  relay_port: [{ required: true, message: '请输入 Relay 端口', trigger: 'blur' }]
 }
 
 // 状态处理
@@ -264,15 +210,6 @@ const getStatusText = (status) => {
   return map[status] || status
 }
 
-// 格式化字节数
-const formatBytes = (bytes) => {
-  if (!bytes || bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
-}
-
 // 获取节点列表
 const fetchNodes = async () => {
   try {
@@ -281,12 +218,6 @@ const fetchNodes = async () => {
   } catch (error) {
     console.error('获取节点列表失败:', error)
   }
-}
-
-// 搜索
-const handleSearch = () => {
-  page.value = 1
-  fetchData()
 }
 
 // 获取数据
@@ -309,26 +240,24 @@ const fetchData = async (isSilent = false) => {
   }
 }
 
+// 搜索
+const handleSearch = () => {
+  page.value = 1
+  fetchData()
+}
+
 // 打开对话框
 const openDialog = (row = null) => {
   isEdit.value = !!row
   editId.value = row?.id || null
   
   if (row) {
-    // 解析 targets
-    let tList = []
-    if (row.targets && row.targets.length > 0) {
-        tList = row.targets.map(t => ({ address: t }))
-    }
-
     Object.assign(form, {
       name: row.name,
       entry_node_id: row.entry_node_id,
       exit_node_id: row.exit_node_id,
       protocol: row.protocol || 'tcp',
-      listen_port: row.listen_port,
-      targetList: tList,
-      strategy: row.strategy || 'round',
+      relay_port: row.relay_port || 8443,
       remark: row.remark || ''
     })
   } else {
@@ -337,9 +266,7 @@ const openDialog = (row = null) => {
       entry_node_id: '',
       exit_node_id: '',
       protocol: 'tcp',
-      listen_port: 8080,
-      targetList: [{ address: '' }],
-      strategy: 'round',
+      relay_port: 8443,
       remark: ''
     })
   }
@@ -356,16 +283,15 @@ const handleSubmit = async () => {
     
     submitLoading.value = true
     try {
-      // 准备提交数据
-      // 准备提交数据
-      const targets = form.targetList.map(item => item.address).filter(t => t.trim() !== '')
-
-      const { targetList, ...rest } = form
       const submitData = {
-        ...rest,
-        targets: targets
+        name: form.name,
+        entry_node_id: form.entry_node_id,
+        exit_node_id: form.exit_node_id,
+        protocol: form.protocol,
+        relay_port: form.relay_port,
+        remark: form.remark
       }
-
+      
       if (isEdit.value) {
         await updateTunnel(editId.value, submitData)
         ElMessage.success('更新成功')
@@ -383,37 +309,18 @@ const handleSubmit = async () => {
   })
 }
 
-// 复制隧道
-const handleCopy = (row) => {
-  isEdit.value = false
-  editId.value = null
-  
-  Object.assign(form, {
-    name: row.name,
-    entry_node_id: row.entry_node_id,
-    exit_node_id: row.exit_node_id,
-    protocol: row.protocol || 'tcp',
-    listen_port: row.listen_port + 1,
-    targetList: (row.targets && row.targets.length > 0) ? row.targets.map(t => ({ address: t })) : [{ address: '' }],
-    strategy: row.strategy || 'round',
-    remark: row.remark || ''
-  })
-  
-  if (row.targets && row.targets.length > 0) {
-      form.targetList = row.targets.map(t => ({ address: t }))
-  }
-  
-  dialogVisible.value = true
-}
-
 // 删除隧道
 const handleDelete = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定要删除隧道 "${row.name}" 吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      `确定要删除隧道 "${row.name}" 吗？如果有规则正在使用此隧道，将无法删除。`, 
+      '提示', 
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
     await deleteTunnel(row.id)
     ElMessage.success('删除成功')
     fetchData()
@@ -446,13 +353,6 @@ const handleStop = async (row) => {
   }
 }
 
-// Ping 类型判断
-const getPingType = (ping) => {
-  if (ping < 100) return 'success'
-  if (ping < 300) return 'warning'
-  return 'danger'
-}
-
 // 定时刷新
 let refreshTimer = null
 
@@ -471,16 +371,6 @@ onBeforeUnmount(() => {
     clearInterval(refreshTimer)
   }
 })
-
-// 添加目标
-const addTarget = () => {
-    form.targetList.push({ address: '' })
-}
-
-// 移除目标
-const removeTarget = (index) => {
-    form.targetList.splice(index, 1)
-}
 </script>
 
 <style scoped>
@@ -488,12 +378,6 @@ const removeTarget = (index) => {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .page-header h3 {
@@ -521,60 +405,13 @@ const removeTarget = (index) => {
   margin-top: 16px;
 }
 
-/* 表格行高优化 */
+.form-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 :deep(.el-table .el-table__cell) {
   padding: 12px 0;
-}
-
-/* 限速限流标签 */
-.limit-tags {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* 流量统计 */
-.stats-info {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  font-size: 12px;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-divider {
-  color: #dcdfe6;
-  margin: 0 4px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.text-muted {
-  color: #909399;
-  font-size: 12px;
-}
-
-/* 表单提示 */
-.form-tip {
-  margin-left: 8px;
-  color: #909399;
-  font-size: 12px;
-}
-
-.upload-icon {
-  color: #67c23a;
-}
-
-.download-icon {
-  color: #409eff;
-}
-
-.ml-2 {
-  margin-left: 8px;
 }
 </style>

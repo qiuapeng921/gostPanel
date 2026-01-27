@@ -2,6 +2,7 @@ package service
 
 import (
 	"gost-panel/internal/config"
+	"gost-panel/internal/model"
 	"gost-panel/internal/repository"
 
 	"gorm.io/gorm"
@@ -9,28 +10,28 @@ import (
 
 // StatsService 统计服务
 type StatsService struct {
-	nodeRepo    *repository.NodeRepository
-	forwardRepo *repository.ForwardRepository
-	tunnelRepo  *repository.TunnelRepository
-	logRepo     *repository.OperationLogRepository
+	nodeRepo   *repository.NodeRepository
+	ruleRepo   *repository.RuleRepository
+	tunnelRepo *repository.TunnelRepository
+	logRepo    *repository.OperationLogRepository
 }
 
 // NewStatsService 创建统计服务
 func NewStatsService(db *gorm.DB) *StatsService {
 	return &StatsService{
-		nodeRepo:    repository.NewNodeRepository(db),
-		forwardRepo: repository.NewForwardRepository(db),
-		tunnelRepo:  repository.NewTunnelRepository(db),
-		logRepo:     repository.NewOperationLogRepository(db),
+		nodeRepo:   repository.NewNodeRepository(db),
+		ruleRepo:   repository.NewRuleRepository(db),
+		tunnelRepo: repository.NewTunnelRepository(db),
+		logRepo:    repository.NewOperationLogRepository(db),
 	}
 }
 
 // DashboardStats 仪表盘统计
 type DashboardStats struct {
-	Nodes    NodeStats    `json:"nodes"`
-	Forwards ForwardStats `json:"forwards"`
-	Tunnels  TunnelStats  `json:"tunnels"`
-	Version  string       `json:"version"`
+	Nodes   NodeStats   `json:"nodes"`
+	Rules   RuleStats   `json:"rules"`
+	Tunnels TunnelStats `json:"tunnels"`
+	Version string      `json:"version"`
 }
 
 // NodeStats 节点统计
@@ -40,16 +41,20 @@ type NodeStats struct {
 	Offline int64 `json:"offline"`
 }
 
-// ForwardStats 转发统计
-type ForwardStats struct {
-	Total   int64 `json:"total"`
-	Running int64 `json:"running"`
-	Stopped int64 `json:"stopped"`
+// RuleStats 规则统计
+type RuleStats struct {
+	Total       int64 `json:"total"`
+	Running     int64 `json:"running"`
+	Stopped     int64 `json:"stopped"`
+	ForwardType int64 `json:"forward_type"` // 端口转发类型数量
+	TunnelType  int64 `json:"tunnel_type"`  // 隧道转发类型数量
 }
 
 // TunnelStats 隧道统计
 type TunnelStats struct {
-	Total int64 `json:"total"`
+	Total   int64 `json:"total"`
+	Running int64 `json:"running"`
+	Stopped int64 `json:"stopped"`
 }
 
 // GetDashboardStats 获取仪表盘统计
@@ -71,19 +76,29 @@ func (s *StatsService) GetDashboardStats() (*DashboardStats, error) {
 		Offline: nodeTotal - nodeOnline,
 	}
 
-	// 转发统计
-	forwardTotal, err := s.forwardRepo.CountAll()
+	// 规则统计
+	ruleTotal, err := s.ruleRepo.CountAll()
 	if err != nil {
 		return nil, err
 	}
-	forwardRunning, err := s.forwardRepo.CountByStatus("running")
+	ruleRunning, err := s.ruleRepo.CountByStatus(model.RuleStatusRunning)
 	if err != nil {
 		return nil, err
 	}
-	stats.Forwards = ForwardStats{
-		Total:   forwardTotal,
-		Running: forwardRunning,
-		Stopped: forwardTotal - forwardRunning,
+	forwardType, err := s.ruleRepo.CountByType(model.RuleTypeForward)
+	if err != nil {
+		return nil, err
+	}
+	tunnelType, err := s.ruleRepo.CountByType(model.RuleTypeTunnel)
+	if err != nil {
+		return nil, err
+	}
+	stats.Rules = RuleStats{
+		Total:       ruleTotal,
+		Running:     ruleRunning,
+		Stopped:     ruleTotal - ruleRunning,
+		ForwardType: forwardType,
+		TunnelType:  tunnelType,
 	}
 
 	// 隧道统计
@@ -91,8 +106,14 @@ func (s *StatsService) GetDashboardStats() (*DashboardStats, error) {
 	if err != nil {
 		return nil, err
 	}
+	tunnelRunning, err := s.tunnelRepo.CountByStatus(model.TunnelStatusRunning)
+	if err != nil {
+		return nil, err
+	}
 	stats.Tunnels = TunnelStats{
-		Total: tunnelTotal,
+		Total:   tunnelTotal,
+		Running: tunnelRunning,
+		Stopped: tunnelTotal - tunnelRunning,
 	}
 
 	stats.Version = config.Version

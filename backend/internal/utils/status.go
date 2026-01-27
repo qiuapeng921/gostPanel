@@ -2,26 +2,23 @@ package utils
 
 import "gost-panel/internal/model"
 
-// GostStateToForwardStatus 将 Gost 服务状态转换为转发规则状态
-func GostStateToForwardStatus(state string) model.ForwardStatus {
+// GostStateToRuleStatus 将 Gost 服务状态转换为规则状态
+func GostStateToRuleStatus(state string) model.RuleStatus {
 	switch state {
 	case "ready", "running":
-		return model.ForwardStatusRunning
+		return model.RuleStatusRunning
 	case "failed":
-		return model.ForwardStatusError
+		return model.RuleStatusError
 	default:
-		return model.ForwardStatusStopped
+		return model.RuleStatusStopped
 	}
 }
 
-// GostStateToTunnelStatus 将 Gost 服务状态转换为隧道规则状态
-func GostStateToTunnelStatus(state string, chainExists bool) model.TunnelStatus {
+// GostStateToTunnelStatus 将 Gost 服务状态转换为隧道状态
+func GostStateToTunnelStatus(state string) model.TunnelStatus {
 	switch state {
 	case "ready", "running":
-		if chainExists {
-			return model.TunnelStatusRunning
-		}
-		return model.TunnelStatusError
+		return model.TunnelStatusRunning
 	case "failed":
 		return model.TunnelStatusError
 	default:

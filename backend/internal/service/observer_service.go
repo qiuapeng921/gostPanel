@@ -14,15 +14,13 @@ import (
 
 // ObserverService 观察器服务
 type ObserverService struct {
-	forwardRepo *repository.ForwardRepository
-	tunnelRepo  *repository.TunnelRepository
+	ruleRepo *repository.RuleRepository
 }
 
 // NewObserverService 创建观察器服务
 func NewObserverService(db *gorm.DB) *ObserverService {
 	return &ObserverService{
-		forwardRepo: repository.NewForwardRepository(db),
-		tunnelRepo:  repository.NewTunnelRepository(db),
+		ruleRepo: repository.NewRuleRepository(db),
 	}
 }
 
@@ -48,49 +46,35 @@ func (s *ObserverService) processEvent(event *dto.ObserverEvent) error {
 		return nil
 	}
 
-	// 解析服务名称，格式: forward-{id} 或 tunnel-{id}
-	if strings.HasPrefix(serviceName, "forward-") {
-		return s.updateForwardStats(serviceName, event.Stats)
+	// 解析服务名称，格式: rule-{id} 或 forward-{id} 或 tunnel-{id}
+	if strings.HasPrefix(serviceName, "rule-") {
+		return s.updateRuleStats(serviceName, event.Stats, "rule-")
+	} else if strings.HasPrefix(serviceName, "forward-") {
+		// 保持向后兼容
+		return s.updateRuleStats(serviceName, event.Stats, "forward-")
 	} else if strings.HasPrefix(serviceName, "tunnel-") {
-		return s.updateTunnelStats(serviceName, event.Stats)
+		// 保持向后兼容
+		return s.updateRuleStats(serviceName, event.Stats, "tunnel-")
 	}
 
 	return nil
 }
 
-// updateForwardStats 更新转发统计
-func (s *ObserverService) updateForwardStats(serviceName string, stats *dto.ObserverStats) error {
-	// 解析 ID, 格式: forward-{id}
+// updateRuleStats 更新规则统计
+func (s *ObserverService) updateRuleStats(serviceName string, stats *dto.ObserverStats, prefix string) error {
+	// 解析 ID
 	var id uint
-	if _, err := parseServiceID(serviceName, "forward-", &id); err != nil {
+	if _, err := parseServiceID(serviceName, prefix, &id); err != nil {
 		return err
 	}
 
 	// 更新统计数据
-	if err := s.forwardRepo.UpdateStats(id, stats.InputBytes, stats.OutputBytes, stats.TotalConns); err != nil {
+	if err := s.ruleRepo.UpdateStats(id, stats.InputBytes, stats.OutputBytes, stats.TotalConns); err != nil {
 		return err
 	}
 
-	logger.Debugf("更新转发统计: forward-%d, In: %d, Out: %d, Req: %d",
-		id, stats.InputBytes, stats.OutputBytes, stats.TotalConns)
-	return nil
-}
-
-// updateTunnelStats 更新隧道统计
-func (s *ObserverService) updateTunnelStats(serviceName string, stats *dto.ObserverStats) error {
-	// 解析 ID, 格式: tunnel-{id}
-	var id uint
-	if _, err := parseServiceID(serviceName, "tunnel-", &id); err != nil {
-		return err
-	}
-
-	// 更新统计数据
-	if err := s.tunnelRepo.UpdateStats(id, stats.InputBytes, stats.OutputBytes, stats.TotalConns); err != nil {
-		return err
-	}
-
-	logger.Debugf("更新隧道统计: tunnel-%d, In: %d, Out: %d, Req: %d",
-		id, stats.InputBytes, stats.OutputBytes, stats.TotalConns)
+	logger.Debugf("更新规则统计: %s%d, In: %d, Out: %d, Req: %d",
+		prefix, id, stats.InputBytes, stats.OutputBytes, stats.TotalConns)
 	return nil
 }
 

@@ -14,23 +14,23 @@ import (
 )
 
 // RuleSyncService 规则状态同步服务
-// 定时从 Gost 节点同步转发和隧道规则的真实运行状态
+// 定时从 Gost 节点同步规则的真实运行状态
 type RuleSyncService struct {
-	nodeRepo    *repository.NodeRepository
-	forwardRepo *repository.ForwardRepository
-	tunnelRepo  *repository.TunnelRepository
-	ticker      *time.Ticker
-	stopChan    chan struct{}
-	wg          sync.WaitGroup
+	nodeRepo   *repository.NodeRepository
+	ruleRepo   *repository.RuleRepository
+	tunnelRepo *repository.TunnelRepository
+	ticker     *time.Ticker
+	stopChan   chan struct{}
+	wg         sync.WaitGroup
 }
 
 // NewRuleSyncService 创建规则状态同步服务
 func NewRuleSyncService(db *gorm.DB) *RuleSyncService {
 	return &RuleSyncService{
-		nodeRepo:    repository.NewNodeRepository(db),
-		forwardRepo: repository.NewForwardRepository(db),
-		tunnelRepo:  repository.NewTunnelRepository(db),
-		stopChan:    make(chan struct{}),
+		nodeRepo:   repository.NewNodeRepository(db),
+		ruleRepo:   repository.NewRuleRepository(db),
+		tunnelRepo: repository.NewTunnelRepository(db),
+		stopChan:   make(chan struct{}),
 	}
 }
 
@@ -83,7 +83,7 @@ func (s *RuleSyncService) syncAll() {
 
 // syncNodeRules 同步单个节点的规则
 func (s *RuleSyncService) syncNodeRules(node model.GostNode) {
-	// 如果节点离线，跳过规则同步（由 NodeHealthService 处理离线逻辑）
+	// 如果节点离线，跳过规则同步
 	if node.Status == model.NodeStatusOffline {
 		return
 	}
@@ -107,63 +107,56 @@ func (s *RuleSyncService) syncNodeRules(node model.GostNode) {
 		serviceStates[svc.Name] = state
 	}
 
-	runningChains := make(map[string]bool)
-	for _, chain := range gostCfg.Chains {
-		runningChains[chain.Name] = true
-	}
-
-	// 1. 同步转发规则 (Forwarding)
-	forwards, err := s.forwardRepo.FindByNodeID(node.ID)
+	// 1. 同步规则状态
+	rules, err := s.ruleRepo.FindByNodeID(node.ID)
 	if err != nil {
-		logger.Errorf("[Sync] 获取节点 %d 转发规则失败: %v", node.ID, err)
+		logger.Errorf("[Sync] 获取节点 %d 规则失败: %v", node.ID, err)
 	} else {
-		for _, f := range forwards {
-			s.syncForwardStatus(f, serviceStates)
+		for _, r := range rules {
+			s.syncRuleStatus(r, serviceStates)
 		}
 	}
 
-	// 2. 同步隧道规则 (Tunnel)
-	// 注意：隧道运行在入口节点上，所以仅在入口节点同步其状态
+	// 2. 同步隧道状态
 	tunnels, err := s.tunnelRepo.FindByNodeID(node.ID)
 	if err != nil {
 		logger.Errorf("[Sync] 获取节点 %d 隧道规则失败: %v", node.ID, err)
 	} else {
 		for _, t := range tunnels {
-			// 仅在当前节点是该隧道的入口节点时同步状态
-			if t.EntryNodeID == node.ID {
-				s.syncTunnelStatus(t, serviceStates, runningChains)
+			// 仅对出口节点同步隧道状态（Relay 服务运行在出口节点）
+			if t.ExitNodeID == node.ID {
+				s.syncTunnelStatus(t, serviceStates)
 			}
 		}
 	}
 }
 
-// syncForwardStatus 同步转发规则状态
-func (s *RuleSyncService) syncForwardStatus(f model.GostForward, serviceStates map[string]string) {
-	serviceID := f.ServiceID
+// syncRuleStatus 同步规则状态
+func (s *RuleSyncService) syncRuleStatus(r model.GostRule, serviceStates map[string]string) {
+	serviceID := r.ServiceID
 	if serviceID == "" {
-		serviceID = fmt.Sprintf("forward-%d", f.ID)
+		serviceID = fmt.Sprintf("rule-%d", r.ID)
 	}
 
 	state := serviceStates[serviceID]
-	newStatus := utils.GostStateToForwardStatus(state)
+	newStatus := utils.GostStateToRuleStatus(state)
 
 	// 如果状态不一致
-	if f.Status != newStatus {
-		logger.Infof("[Sync] 转发规则 %d (%s) 状态变更: %s -> %s (Gost State: %s)", f.ID, f.Name, f.Status, newStatus, state)
-		_ = s.forwardRepo.UpdateStatus(f.ID, newStatus)
+	if r.Status != newStatus {
+		logger.Infof("[Sync] 规则 %d (%s) 状态变更: %s -> %s (Gost State: %s)", r.ID, r.Name, r.Status, newStatus, state)
+		_ = s.ruleRepo.UpdateStatus(r.ID, newStatus)
 	}
 }
 
-// syncTunnelStatus 同步隧道规则状态
-func (s *RuleSyncService) syncTunnelStatus(t model.GostTunnel, serviceStates map[string]string, runningChains map[string]bool) {
-	serviceID := t.ServiceID
-	chainID := t.ChainID
-
-	state := serviceStates[serviceID]
-	newStatus := utils.GostStateToTunnelStatus(state, runningChains[chainID])
+// syncTunnelStatus 同步隧道状态
+func (s *RuleSyncService) syncTunnelStatus(t model.GostTunnel, serviceStates map[string]string) {
+	// 隧道的服务名称格式为 relay-tunnel-{id}
+	relayServiceName := fmt.Sprintf("relay-tunnel-%d", t.ID)
+	state := serviceStates[relayServiceName]
+	newStatus := utils.GostStateToTunnelStatus(state)
 
 	if t.Status != newStatus {
-		logger.Infof("[Sync] 隧道规则 %d (%s) 状态变更: %s -> %s (Gost State: %s)", t.ID, t.Name, t.Status, newStatus, state)
+		logger.Infof("[Sync] 隧道 %d (%s) 状态变更: %s -> %s (Gost State: %s)", t.ID, t.Name, t.Status, newStatus, state)
 		_ = s.tunnelRepo.UpdateStatus(t.ID, newStatus)
 	}
 }

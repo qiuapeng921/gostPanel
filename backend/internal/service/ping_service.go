@@ -13,23 +13,23 @@ import (
 )
 
 // NodeHealthService 节点健康检测服务
-// 使用 Gost API 进行健康检查，而不是简单的 TCP Ping
+// 使用 Gost API 进行健康检查
 type NodeHealthService struct {
-	nodeRepo    *repository.NodeRepository
-	forwardRepo *repository.ForwardRepository
-	tunnelRepo  *repository.TunnelRepository
-	ticker      *time.Ticker
-	stopChan    chan struct{}
-	wg          sync.WaitGroup
+	nodeRepo   *repository.NodeRepository
+	ruleRepo   *repository.RuleRepository
+	tunnelRepo *repository.TunnelRepository
+	ticker     *time.Ticker
+	stopChan   chan struct{}
+	wg         sync.WaitGroup
 }
 
 // NewNodeHealthService 创建节点健康检测服务
 func NewNodeHealthService(db *gorm.DB) *NodeHealthService {
 	return &NodeHealthService{
-		nodeRepo:    repository.NewNodeRepository(db),
-		forwardRepo: repository.NewForwardRepository(db),
-		tunnelRepo:  repository.NewTunnelRepository(db),
-		stopChan:    make(chan struct{}),
+		nodeRepo:   repository.NewNodeRepository(db),
+		ruleRepo:   repository.NewRuleRepository(db),
+		tunnelRepo: repository.NewTunnelRepository(db),
+		stopChan:   make(chan struct{}),
 	}
 }
 
@@ -88,10 +88,10 @@ func (s *NodeHealthService) checkNodes() {
 			if status != n.Status {
 				logger.Infof("节点 %s 状态变更: %s -> %s", n.Name, n.Status, status)
 				if status == model.NodeStatusOffline && n.Status == model.NodeStatusOnline {
-					// 停止其关联的所有转发和隧道
-					_ = s.forwardRepo.StopByNodeID(node.ID)
-					_ = s.tunnelRepo.StopByNodeID(node.ID)
-					logger.Warnf("节点 %s 离线，已停止其关联的所有转发和隧道", n.Name)
+					// 停止其关联的所有规则和隧道
+					_ = s.ruleRepo.StopByNodeID(n.ID)
+					_ = s.tunnelRepo.StopByNodeID(n.ID)
+					logger.Warnf("节点 %s 离线，已停止其关联的所有规则和隧道", n.Name)
 				}
 				if err = s.nodeRepo.UpdateStatus(n.ID, status); err != nil {
 					logger.Errorf("更新节点 %s 状态失败: %v", n.Name, err)
@@ -112,11 +112,9 @@ func (s *NodeHealthService) checkNodes() {
 
 // checkNodeHealth 检查单个节点的健康状态
 // 通过调用 Gost API 的 /config 接口来判断节点是否可用
-// 返回值：状态
 func (s *NodeHealthService) checkNodeHealth(node model.GostNode) model.NodeStatus {
-	// 从 API URL 提取主机和端口
-	host, port := utils.ExtractHostPort(node.APIURL)
-	if host == "" || port == "" {
+	// 检查地址是否有效
+	if node.Address == "" || node.Port == 0 {
 		return model.NodeStatusOffline
 	}
 

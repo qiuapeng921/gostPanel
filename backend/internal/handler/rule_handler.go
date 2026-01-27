@@ -11,20 +11,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ForwardHandler 转发控制器
-// 处理端口转发相关的 HTTP 请求
-type ForwardHandler struct {
-	forwardService *service.ForwardService
+// RuleHandler 规则控制器
+// 处理规则相关的 HTTP 请求
+type RuleHandler struct {
+	ruleService *service.RuleService
 }
 
-// NewForwardHandler 创建转发控制器
-func NewForwardHandler(forwardService *service.ForwardService) *ForwardHandler {
-	return &ForwardHandler{forwardService: forwardService}
+// NewRuleHandler 创建规则控制器
+func NewRuleHandler(ruleService *service.RuleService) *RuleHandler {
+	return &RuleHandler{ruleService: ruleService}
 }
 
-// Create 创建转发规则
-func (h *ForwardHandler) Create(c *gin.Context) {
-	var req dto.CreateForwardReq
+// Create 创建规则
+func (h *RuleHandler) Create(c *gin.Context) {
+	var req dto.CreateRuleReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "请求参数错误: "+err.Error())
 		return
@@ -36,24 +36,24 @@ func (h *ForwardHandler) Create(c *gin.Context) {
 	ip := c.ClientIP()
 	ua := c.GetHeader("User-Agent")
 
-	forward, err := h.forwardService.Create(&req, userID.(uint), username.(string), ip, ua)
+	rule, err := h.ruleService.Create(&req, userID.(uint), username.(string), ip, ua)
 	if err != nil {
 		response.HandleError(c, err)
 		return
 	}
 
-	response.Success(c, forward)
+	response.Success(c, rule)
 }
 
-// Update 更新转发规则
-func (h *ForwardHandler) Update(c *gin.Context) {
+// Update 更新规则
+func (h *RuleHandler) Update(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		response.BadRequest(c, "无效的转发 ID")
+		response.BadRequest(c, "无效的规则 ID")
 		return
 	}
 
-	var req dto.UpdateForwardReq
+	var req dto.UpdateRuleReq
 	if err = c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "请求参数错误: "+err.Error())
 		return
@@ -65,20 +65,20 @@ func (h *ForwardHandler) Update(c *gin.Context) {
 	ip := c.ClientIP()
 	ua := c.GetHeader("User-Agent")
 
-	forward, err := h.forwardService.Update(uint(id), &req, userID.(uint), username.(string), ip, ua)
+	rule, err := h.ruleService.Update(uint(id), &req, userID.(uint), username.(string), ip, ua)
 	if err != nil {
 		response.HandleError(c, err)
 		return
 	}
 
-	response.Success(c, forward)
+	response.Success(c, rule)
 }
 
-// Delete 删除转发规则
-func (h *ForwardHandler) Delete(c *gin.Context) {
+// Delete 删除规则
+func (h *RuleHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		response.BadRequest(c, "无效的转发 ID")
+		response.BadRequest(c, "无效的规则 ID")
 		return
 	}
 
@@ -88,7 +88,7 @@ func (h *ForwardHandler) Delete(c *gin.Context) {
 	ip := c.ClientIP()
 	ua := c.GetHeader("User-Agent")
 
-	if err = h.forwardService.Delete(uint(id), userID.(uint), username.(string), ip, ua); err != nil {
+	if err = h.ruleService.Delete(uint(id), userID.(uint), username.(string), ip, ua); err != nil {
 		response.HandleError(c, err)
 		return
 	}
@@ -96,45 +96,45 @@ func (h *ForwardHandler) Delete(c *gin.Context) {
 	response.SuccessWithMessage(c, "删除成功", nil)
 }
 
-// GetByID 获取转发规则详情
-func (h *ForwardHandler) GetByID(c *gin.Context) {
+// GetByID 获取规则详情
+func (h *RuleHandler) GetByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		response.BadRequest(c, "无效的转发 ID")
+		response.BadRequest(c, "无效的规则 ID")
 		return
 	}
 
-	forward, err := h.forwardService.GetByID(uint(id))
+	rule, err := h.ruleService.GetByID(uint(id))
 	if err != nil {
 		response.HandleError(c, err)
 		return
 	}
 
-	response.Success(c, forward)
+	response.Success(c, rule)
 }
 
-// List 获取转发规则列表
-func (h *ForwardHandler) List(c *gin.Context) {
-	var req dto.ForwardListReq
+// List 获取规则列表
+func (h *RuleHandler) List(c *gin.Context) {
+	var req dto.RuleListReq
 	if err := c.ShouldBindQuery(&req); err != nil {
 		response.BadRequest(c, "请求参数错误: "+err.Error())
 		return
 	}
 
-	forwards, total, err := h.forwardService.List(&req)
+	rules, total, err := h.ruleService.List(&req)
 	if err != nil {
 		response.HandleError(c, err)
 		return
 	}
 
-	response.SuccessPage(c, forwards, total, req.Page, req.PageSize)
+	response.SuccessPage(c, rules, total, req.Page, req.PageSize)
 }
 
-// Start 启动转发
-func (h *ForwardHandler) Start(c *gin.Context) {
+// Start 启动规则
+func (h *RuleHandler) Start(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		response.BadRequest(c, "无效的转发 ID")
+		response.BadRequest(c, "无效的规则 ID")
 		return
 	}
 
@@ -144,7 +144,7 @@ func (h *ForwardHandler) Start(c *gin.Context) {
 	ip := c.ClientIP()
 	ua := c.GetHeader("User-Agent")
 
-	if err = h.forwardService.Start(uint(id), userID.(uint), username.(string), ip, ua); err != nil {
+	if err = h.ruleService.Start(uint(id), userID.(uint), username.(string), ip, ua); err != nil {
 		response.HandleError(c, err)
 		return
 	}
@@ -152,11 +152,11 @@ func (h *ForwardHandler) Start(c *gin.Context) {
 	response.SuccessWithMessage(c, "启动成功", nil)
 }
 
-// Stop 停止转发
-func (h *ForwardHandler) Stop(c *gin.Context) {
+// Stop 停止规则
+func (h *RuleHandler) Stop(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		response.BadRequest(c, "无效的转发 ID")
+		response.BadRequest(c, "无效的规则 ID")
 		return
 	}
 
@@ -166,7 +166,7 @@ func (h *ForwardHandler) Stop(c *gin.Context) {
 	ip := c.ClientIP()
 	ua := c.GetHeader("User-Agent")
 
-	if err := h.forwardService.Stop(uint(id), userID.(uint), username.(string), ip, ua); err != nil {
+	if err := h.ruleService.Stop(uint(id), userID.(uint), username.(string), ip, ua); err != nil {
 		response.HandleError(c, err)
 		return
 	}
@@ -174,9 +174,9 @@ func (h *ForwardHandler) Stop(c *gin.Context) {
 	response.SuccessWithMessage(c, "停止成功", nil)
 }
 
-// GetStats 获取转发统计
-func (h *ForwardHandler) GetStats(c *gin.Context) {
-	stats, err := h.forwardService.GetStats()
+// GetStats 获取规则统计
+func (h *RuleHandler) GetStats(c *gin.Context) {
+	stats, err := h.ruleService.GetStats()
 	if err != nil {
 		response.HandleError(c, err)
 		return

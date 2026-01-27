@@ -67,6 +67,11 @@ func main() {
 		logger.Fatalf("初始化管理员失败: %v", err)
 	}
 
+	// 初始化系统配置
+	if err = initSystemConfig(db); err != nil {
+		logger.Fatalf("初始化系统配置失败: %v", err)
+	}
+
 	// 创建 Gin 引擎
 	engine := gin.New()
 
@@ -143,7 +148,7 @@ func autoMigrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(
 		&model.User{},
 		&model.GostNode{},
-		&model.GostForward{},
+		&model.GostRule{},
 		&model.GostTunnel{},
 		&model.OperationLog{},
 		&model.SystemConfig{},
@@ -162,4 +167,30 @@ func initDefaultAdmin(db *gorm.DB, cfg *config.Config) error {
 	}
 	authService := service.NewAuthService(db, jwtCfg)
 	return authService.InitDefaultAdmin("admin", "admin123")
+}
+
+// initSystemConfig 初始化系统配置
+func initSystemConfig(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&model.SystemConfig{}).Count(&count).Error; err != nil {
+		return err
+	}
+
+	if count == 0 {
+		config := &model.SystemConfig{
+			SiteTitle: "Gost Panel",
+			LogoURL:   "https://gost.run/images/gost.png",
+			Copyright: "https://github.com/code-gopher/gostPanel",
+			// 设置一些合理的默认值
+			LogRetentionDays:     7,
+			LogLevel:             "info",
+			AutoBackup:           false,
+			BackupRetentionCount: 7,
+		}
+		if err := db.Create(config).Error; err != nil {
+			return err
+		}
+		logger.Info("初始化默认系统配置完成")
+	}
+	return nil
 }

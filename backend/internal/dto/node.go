@@ -6,22 +6,22 @@ package dto
 
 // CreateNodeReq 创建节点请求
 type CreateNodeReq struct {
-	Name      string `json:"name" binding:"required,min=1,max=100"` // 节点名称
-	APIURL    string `json:"api_url" binding:"required"`            // API 地址
-	Username  string `json:"username"`                              // API 认证用户名
-	Password  string `json:"password"`                              // API 认证密码
-	RelayPort int    `json:"relay_port"`                            // Relay 端口
-	Remark    string `json:"remark"`                                // 备注
+	Name     string `json:"name" binding:"required,min=1,max=100"`   // 节点名称
+	Address  string `json:"address" binding:"required"`              // IP 或域名
+	Port     int    `json:"port" binding:"required,min=1,max=65535"` // 端口
+	Username string `json:"username"`                                // API 认证用户名
+	Password string `json:"password"`                                // API 认证密码
+	Remark   string `json:"remark"`                                  // 备注
 }
 
 // UpdateNodeReq 更新节点请求
 type UpdateNodeReq struct {
-	Name      string `json:"name" binding:"required,min=1,max=100"` // 节点名称
-	APIURL    string `json:"api_url" binding:"required"`            // API 地址
-	Username  string `json:"username"`                              // API 认证用户名
-	Password  string `json:"password"`                              // API 认证密码
-	RelayPort int    `json:"relay_port"`                            // Relay 端口
-	Remark    string `json:"remark"`                                // 备注
+	Name     string `json:"name" binding:"required,min=1,max=100"`   // 节点名称
+	Address  string `json:"address" binding:"required"`              // IP 或域名
+	Port     int    `json:"port" binding:"required,min=1,max=65535"` // 端口
+	Username string `json:"username"`                                // API 认证用户名
+	Password string `json:"password"`                                // API 认证密码
+	Remark   string `json:"remark"`                                  // 备注
 }
 
 // NodeListReq 节点列表请求

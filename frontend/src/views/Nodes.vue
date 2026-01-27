@@ -30,11 +30,22 @@
       <el-table :data="nodeList" v-loading="loading" style="width: 100%" border>
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="name" label="节点名称" min-width="120" align="center" show-overflow-tooltip />
-        <el-table-column prop="api_url" label="API 地址" min-width="180" align="center" show-overflow-tooltip />
-        <el-table-column label="认证信息" min-width="150" align="center" show-overflow-tooltip>
+        <el-table-column prop="address" label="IP/域名" min-width="150" align="center" show-overflow-tooltip />
+        <el-table-column prop="port" label="端口" width="100" align="center" />
+
+        <el-table-column prop="total_bytes" label="总流量" width="120" align="center">
           <template #default="{ row }">
-            <span v-if="row.username">{{ row.username }}:{{ row.password }}</span>
-            <span v-else style="color: #909399">-</span>
+            {{ formatBytes(row.total_bytes || 0) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="input_bytes" label="上传流量" width="120" align="center">
+          <template #default="{ row }">
+            <span style="color: #67c23a">{{ formatBytes(row.input_bytes || 0) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="output_bytes" label="下载流量" width="120" align="center">
+          <template #default="{ row }">
+            <span style="color: #409eff">{{ formatBytes(row.output_bytes || 0) }}</span>
           </template>
         </el-table-column>
 
@@ -87,9 +98,18 @@
         <el-form-item label="节点名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入节点名称" :prefix-icon="Management" />
         </el-form-item>
-        <el-form-item label="API 地址" prop="api_url">
-          <el-input v-model="form.api_url" placeholder="例如: http://1.2.3.4:39000" :prefix-icon="Link" />
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="IP/域名" prop="address">
+              <el-input v-model="form.address" placeholder="例如: 1.2.3.4" :prefix-icon="Link" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="API 端口" prop="port">
+              <el-input-number v-model="form.port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
         
         <el-row :gutter="20">
           <el-col :span="12">
@@ -100,14 +120,6 @@
           <el-col :span="12">
             <el-form-item label="认证密码" prop="password">
               <el-input v-model="form.password" placeholder="密码" :prefix-icon="Lock" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="Relay 端口" prop="relay_port">
-              <el-input-number v-model="form.relay_port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -242,7 +254,6 @@
           <el-descriptions-item label="API 端口">{{ extractPort(currentInstallNode.api_url) }}</el-descriptions-item>
           <el-descriptions-item label="用户名">{{ currentInstallNode.username || 'admin' }}</el-descriptions-item>
           <el-descriptions-item label="密码">{{ currentInstallNode.password || '(自动生成)' }}</el-descriptions-item>
-          <el-descriptions-item label="Relay 端口">{{ currentInstallNode.relay_port || '(自动生成)' }}</el-descriptions-item>
         </el-descriptions>
       </div>
 
@@ -308,6 +319,15 @@ const nodeConfig = ref(null)
 const installDialogVisible = ref(false)
 const currentInstallNode = ref(null)
 
+// 格式化流量
+const formatBytes = (bytes) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
 // 从 API URL 中提取端口号
 const extractPort = (apiUrl) => {
   if (!apiUrl) return '39000'
@@ -329,11 +349,10 @@ const installCommand = computed(() => {
   const port = extractPort(node.api_url)
   const username = node.username
   const password = node.password
-  const relayPort = node.relay_port
   
   // 构建带参数的安装命令
-  // 参数顺序: 端口 用户名 密码 Relay端口
-  let cmd = `bash <(curl -sL ${INSTALL_SCRIPT_URL}) ${port} ${relayPort} ${username} ${password}`
+  // 参数顺序: 端口 用户名 密码
+  let cmd = `bash <(curl -sL ${INSTALL_SCRIPT_URL}) ${port} ${username} ${password}`
   return cmd
 })
 
@@ -355,22 +374,19 @@ const copyInstallCommand = async () => {
 
 const form = reactive({
   name: '',
-  api_url: '',
+  address: '',
+  port: 39000,
   username: '',
   password: '',
-  relay_port: 0,
   remark: ''
 })
 
 const rules = {
   name: [{ required: true, message: '请输入节点名称', trigger: 'blur' }],
-  api_url: [{ required: true, message: '请输入 API 地址', trigger: 'blur' }],
+  address: [{ required: true, message: '请输入 IP 或域名', trigger: 'blur' }],
+  port: [{ required: true, message: '请输入端口', trigger: 'blur' }],
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  relay_port: [
-    { required: true, message: '请输入 Relay 端口', trigger: 'blur' },
-    { type: 'number', min: 1, max: 65535, message: '端口范围 1-65535', trigger: 'blur' }
-  ]
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 
 // 获取数据
@@ -406,19 +422,19 @@ const openDialog = (row = null) => {
   if (row) {
     Object.assign(form, {
       name: row.name,
-      api_url: row.api_url,
+      address: row.address,
+      port: row.port,
       username: row.username,
       password: row.password,
-      relay_port: row.relay_port,
       remark: row.remark
     })
   } else {
     Object.assign(form, {
       name: '',
-      api_url: 'http://127.0.0.1:39000/api',
+      address: '127.0.0.1',
+      port: 39000,
       username: 'admin',
       password: 'zxc123',
-      relay_port: 39001,
       remark: ''
     })
   }
@@ -481,7 +497,6 @@ const handleCopy = (row) => {
     api_url: row.api_url || '',
     username: row.username || '',
     password: row.password || '',
-    relay_port: row.relay_port || 0,
     remark: row.remark || ''
   })
   

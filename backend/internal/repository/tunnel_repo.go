@@ -58,7 +58,7 @@ func (r *TunnelRepository) List(opt *QueryOption) ([]model.GostTunnel, int64, er
 		return nil, 0, err
 	}
 
-	// 预加载节点
+	// 预加载节点和关联规则
 	db = db.Preload("EntryNode").Preload("ExitNode")
 
 	// 默认按创建时间倒序
@@ -76,46 +76,9 @@ func (r *TunnelRepository) List(opt *QueryOption) ([]model.GostTunnel, int64, er
 	return tunnels, total, nil
 }
 
-// ExistsByPort 检查入口节点端口是否已被使用
-func (r *TunnelRepository) ExistsByPort(entryNodeID uint, port int, excludeID ...uint) (bool, error) {
-	var count int64
-	db := r.DB.Model(&model.GostTunnel{}).
-		Where("entry_node_id = ? AND listen_port = ?", entryNodeID, port)
-	if len(excludeID) > 0 {
-		db = db.Where("id != ?", excludeID[0])
-	}
-	err := db.Count(&count).Error
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
 // UpdateStatus 更新隧道状态
 func (r *TunnelRepository) UpdateStatus(id uint, status model.TunnelStatus) error {
 	return r.UpdateField(&model.GostTunnel{}, id, "status", status)
-}
-
-// UpdateServiceInfo 更新服务信息
-func (r *TunnelRepository) UpdateServiceInfo(id uint, serviceID, chainID string) error {
-	return r.UpdateFields(&model.GostTunnel{}, id, map[string]interface{}{
-		"service_id": serviceID,
-		"chain_id":   chainID,
-	})
-}
-
-// UpdatePing 更新 Ping 值
-func (r *TunnelRepository) UpdatePing(id uint, entryPing, exitPing int64) error {
-	return r.DB.Model(&model.GostTunnel{}).Where("id = ?", id).
-		Updates(map[string]interface{}{
-			"entry_ping": entryPing,
-			"exit_ping":  exitPing,
-		}).Error
-}
-
-// UpdateObserverID 更新观察器 ID
-func (r *TunnelRepository) UpdateObserverID(id uint, observerID string) error {
-	return r.UpdateField(&model.GostTunnel{}, id, "observer_id", observerID)
 }
 
 // CountAll 统计总数
@@ -139,12 +102,30 @@ func (r *TunnelRepository) StopByNodeID(nodeID uint) error {
 		Update("status", model.TunnelStatusStopped).Error
 }
 
-// UpdateStats 更新流量统计
-func (r *TunnelRepository) UpdateStats(id uint, inputBytes, outputBytes, totalRequests int64) error {
-	return r.UpdateFields(&model.GostTunnel{}, id, map[string]interface{}{
-		"input_bytes":    inputBytes,
-		"output_bytes":   outputBytes,
-		"total_bytes":    inputBytes + outputBytes,
-		"total_requests": totalRequests,
-	})
+// HasRulesUsingTunnel 检查是否有规则正在使用该隧道
+func (r *TunnelRepository) HasRulesUsingTunnel(tunnelID uint) (bool, error) {
+	var count int64
+	err := r.DB.Model(&model.GostRule{}).Where("tunnel_id = ?", tunnelID).Count(&count).Error
+	return count > 0, err
+}
+
+// HasRules 检查隧道是否被规则使用（别名方法）
+func (r *TunnelRepository) HasRules(tunnelID uint) (bool, error) {
+	return r.HasRulesUsingTunnel(tunnelID)
+}
+
+// CountByStatus 按状态统计
+func (r *TunnelRepository) CountByStatus(status model.TunnelStatus) (int64, error) {
+	var count int64
+	err := r.DB.Model(&model.GostTunnel{}).Where("status = ?", status).Count(&count).Error
+	return count, err
+}
+
+// UpdateServiceInfo 更新隧道的服务 ID 和 Chain ID
+func (r *TunnelRepository) UpdateServiceInfo(id uint, serviceID, chainID string) error {
+	return r.DB.Model(&model.GostTunnel{}).Where("id = ?", id).
+		Updates(map[string]any{
+			"service_id": serviceID,
+			"chain_id":   chainID,
+		}).Error
 }

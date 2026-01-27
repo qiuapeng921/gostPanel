@@ -29,16 +29,16 @@ const routes = [
                 meta: { title: '节点管理', icon: 'Monitor' }
             },
             {
-                path: 'forwards',
-                name: 'Forwards',
-                component: () => import('@/views/Forwards.vue'),
-                meta: { title: '端口转发', icon: 'Switch' }
+                path: 'rules',
+                name: 'Rules',
+                component: () => import('@/views/Rules.vue'),
+                meta: { title: '规则管理', icon: 'Switch' }
             },
             {
                 path: 'tunnels',
                 name: 'Tunnels',
                 component: () => import('@/views/Tunnels.vue'),
-                meta: { title: '隧道转发', icon: 'Connection' }
+                meta: { title: '隧道管理', icon: 'Connection' }
             },
             {
                 path: 'logs',

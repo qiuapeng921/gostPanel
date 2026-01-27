@@ -40,7 +40,7 @@ const (
 
 // 资源类型常量
 const (
-	ResourceTypeNode    = "node"    // 节点
-	ResourceTypeForward = "forward" // 转发规则
-	ResourceTypeTunnel  = "tunnel"  // 隧道
+	ResourceTypeNode   = "node"   // 节点
+	ResourceTypeRule   = "rule"   // 规则
+	ResourceTypeTunnel = "tunnel" // 隧道
 )

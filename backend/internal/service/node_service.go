@@ -45,13 +45,13 @@ func (s *NodeService) Create(req *dto.CreateNodeReq, userID uint, username strin
 
 	// 创建节点
 	node := &model.GostNode{
-		Name:      req.Name,
-		APIURL:    req.APIURL,
-		Username:  req.Username,
-		Password:  req.Password,
-		RelayPort: req.RelayPort,
-		Remark:    req.Remark,
-		Status:    model.NodeStatusOffline,
+		Name:     req.Name,
+		Address:  req.Address,
+		Port:     req.Port,
+		Username: req.Username,
+		Password: req.Password,
+		Remark:   req.Remark,
+		Status:   model.NodeStatusOffline,
 	}
 
 	if err = s.nodeRepo.Create(node); err != nil {
@@ -69,7 +69,7 @@ func (s *NodeService) Create(req *dto.CreateNodeReq, userID uint, username strin
 		ip,
 		userAgent)
 
-	logger.Infof("创建节点成功: %s (%s)", node.Name, node.APIURL)
+	logger.Infof("创建节点成功: %s (%s:%d)", node.Name, node.Address, node.Port)
 	return node, nil
 }
 
@@ -96,10 +96,10 @@ func (s *NodeService) Update(id uint, req *dto.UpdateNodeReq, userID uint, usern
 
 	// 更新节点
 	node.Name = req.Name
-	node.APIURL = req.APIURL
+	node.Address = req.Address
+	node.Port = req.Port
 	node.Username = req.Username
 	node.Password = req.Password
-	node.RelayPort = req.RelayPort
 	node.Remark = req.Remark
 
 	if err = s.nodeRepo.Update(node); err != nil {
@@ -132,9 +132,9 @@ func (s *NodeService) Delete(id uint, userID uint, username string, ip, userAgen
 		return err
 	}
 
-	// 检查是否有关联的转发规则
-	if len(node.Forwards) > 0 {
-		return errors.ErrNodeHasForwards
+	// 检查是否有关联的规则
+	if len(node.Rules) > 0 {
+		return errors.ErrNodeHasRules
 	}
 
 	// 注意: 隧道有 EntryNodeID 和 ExitNodeID 两个外键
@@ -192,7 +192,7 @@ func (s *NodeService) List(req *dto.NodeListReq) ([]model.GostNode, int64, error
 
 	// 关键词搜索
 	if req.Keyword != "" {
-		opt.Conditions["name LIKE ? OR api_url LIKE ?"] = []interface{}{
+		opt.Conditions["name LIKE ? OR address LIKE ?"] = []interface{}{
 			"%" + req.Keyword + "%",
 			"%" + req.Keyword + "%",
 		}

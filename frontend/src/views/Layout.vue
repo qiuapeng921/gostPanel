@@ -45,14 +45,29 @@
           text-color="#606266"
           active-text-color="#409eff"
         >
-          <el-menu-item 
-            v-for="item in menuItems" 
-            :key="item.path" 
-            :index="item.path"
-          >
-            <el-icon><component :is="item.icon" /></el-icon>
-            <template #title>{{ item.title }}</template>
-          </el-menu-item>
+          <template v-for="item in menuItems" :key="item.path">
+            <!-- 有子菜单 -->
+            <el-sub-menu v-if="item.children" :index="item.path">
+              <template #title>
+                <el-icon><component :is="item.icon" /></el-icon>
+                <span>{{ item.title }}</span>
+              </template>
+              <el-menu-item 
+                v-for="child in item.children"
+                :key="child.path"
+                :index="child.path"
+              >
+                <el-icon><component :is="child.icon" /></el-icon>
+                <template #title>{{ child.title }}</template>
+              </el-menu-item>
+            </el-sub-menu>
+
+            <!-- 无子菜单 -->
+            <el-menu-item v-else :index="item.path">
+              <el-icon><component :is="item.icon" /></el-icon>
+              <template #title>{{ item.title }}</template>
+            </el-menu-item>
+          </template>
         </el-menu>
       </el-aside>
 
@@ -142,8 +157,8 @@ onMounted(() => {
 const menuItems = [
   { path: '/dashboard', title: '仪表盘', icon: Odometer },
   { path: '/nodes', title: '节点管理', icon: Monitor },
-  { path: '/forwards', title: '端口转发', icon: Switch },
-  { path: '/tunnels', title: '隧道转发', icon: Connection },
+  { path: '/rules', title: '规则管理', icon: Switch },
+  { path: '/tunnels', title: '隧道管理', icon: Connection },
   { path: '/logs', title: '操作日志', icon: Document },
   { path: '/system', title: '系统设置', icon: Setting },
   { path: '/about', title: '关于系统', icon: InfoFilled }

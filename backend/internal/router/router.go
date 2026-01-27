@@ -53,7 +53,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 	// 初始化服务
 	authService := service.NewAuthService(r.db, r.jwtCfg)
 	nodeService := service.NewNodeService(r.db)
-	forwardService := service.NewForwardService(r.db)
+	ruleService := service.NewRuleService(r.db)
 	tunnelService := service.NewTunnelService(r.db)
 	statsService := service.NewStatsService(r.db)
 	logService := service.NewLogService(r.db)
@@ -67,7 +67,7 @@ func (r *Router) Setup(engine *gin.Engine) {
 	// 初始化控制器
 	authHandler := handler.NewAuthHandler(authService)
 	nodeHandler := handler.NewNodeHandler(nodeService)
-	forwardHandler := handler.NewForwardHandler(forwardService)
+	ruleHandler := handler.NewRuleHandler(ruleService)
 	tunnelHandler := handler.NewTunnelHandler(tunnelService)
 	statsHandler := handler.NewStatsHandler(statsService)
 	logHandler := handler.NewLogHandler(logService)
@@ -104,15 +104,15 @@ func (r *Router) Setup(engine *gin.Engine) {
 		authRoutes.GET("/nodes/:id/config", nodeHandler.GetConfig)
 		authRoutes.GET("/nodes/stats", nodeHandler.GetStats)
 
-		// 转发规则管理
-		authRoutes.GET("/forwards", forwardHandler.List)
-		authRoutes.GET("/forwards/:id", forwardHandler.GetByID)
-		authRoutes.POST("/forwards", forwardHandler.Create)
-		authRoutes.PUT("/forwards/:id", forwardHandler.Update)
-		authRoutes.DELETE("/forwards/:id", forwardHandler.Delete)
-		authRoutes.POST("/forwards/:id/start", forwardHandler.Start)
-		authRoutes.POST("/forwards/:id/stop", forwardHandler.Stop)
-		authRoutes.GET("/forwards/stats", forwardHandler.GetStats)
+		// 规则管理
+		authRoutes.GET("/rules", ruleHandler.List)
+		authRoutes.GET("/rules/:id", ruleHandler.GetByID)
+		authRoutes.POST("/rules", ruleHandler.Create)
+		authRoutes.PUT("/rules/:id", ruleHandler.Update)
+		authRoutes.DELETE("/rules/:id", ruleHandler.Delete)
+		authRoutes.POST("/rules/:id/start", ruleHandler.Start)
+		authRoutes.POST("/rules/:id/stop", ruleHandler.Stop)
+		authRoutes.GET("/rules/stats", ruleHandler.GetStats)
 
 		// 隧道管理
 		authRoutes.GET("/tunnels", tunnelHandler.List)

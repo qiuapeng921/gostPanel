@@ -26,11 +26,11 @@
               <el-icon><Switch /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ stats.forwards.total }}</div>
+              <div class="stat-value">{{ stats.rules.total }}</div>
               <div class="stat-label">转发规则</div>
               <div class="stat-sub">
-                <span class="online">运行 {{ stats.forwards.running }}</span>
-                <span class="offline">停止 {{ stats.forwards.stopped }}</span>
+                <span class="online">运行 {{ stats.rules.running }}</span>
+                <span class="offline">停止 {{ stats.rules.stopped }}</span>
               </div>
             </div>
           </div>
@@ -44,7 +44,11 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ stats.tunnels.total }}</div>
-              <div class="stat-label">隧道配置</div>
+              <div class="stat-label">隧道链路</div>
+              <div class="stat-sub">
+                <span class="online">运行 {{ stats.tunnels.running || 0 }}</span>
+                <span class="offline">停止 {{ stats.tunnels.stopped || 0 }}</span>
+              </div>
             </div>
           </div>
         </el-card>
@@ -77,8 +81,8 @@
             <el-button type="primary" :icon="Plus" @click="$router.push('/nodes')">
               添加节点
             </el-button>
-            <el-button type="success" :icon="Plus" @click="$router.push('/forwards')">
-              添加转发
+            <el-button type="success" :icon="Plus" @click="$router.push('/rules')">
+              添加规则
             </el-button>
             <el-button type="warning" :icon="Plus" @click="$router.push('/tunnels')">
               添加隧道
@@ -143,8 +147,8 @@ const authStore = useAuthStore()
 // 统计数据
 const stats = reactive({
   nodes: { total: 0, online: 0, offline: 0 },
-  forwards: { total: 0, running: 0, stopped: 0 },
-  tunnels: { total: 0 },
+  rules: { total: 0, running: 0, stopped: 0 },
+  tunnels: { total: 0, running: 0, stopped: 0 },
   version: ''
 })
 

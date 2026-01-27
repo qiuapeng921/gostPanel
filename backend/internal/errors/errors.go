@@ -33,8 +33,8 @@ var (
 	ErrNodeNotFound = New(10001, "节点不存在", http.StatusNotFound)
 	// ErrNodeNameExists 节点名称已存在
 	ErrNodeNameExists = New(10002, "节点名称已存在", http.StatusBadRequest)
-	// ErrNodeHasForwards 节点下存在转发规则
-	ErrNodeHasForwards = New(10003, "节点下存在转发规则，无法删除", http.StatusBadRequest)
+	// ErrNodeHasRules 节点下存在规则
+	ErrNodeHasRules = New(10003, "节点下存在规则，无法删除", http.StatusBadRequest)
 	// ErrNodeHasTunnels 节点下存在隧道配置
 	ErrNodeHasTunnels = New(10004, "节点下存在隧道配置，无法删除", http.StatusBadRequest)
 	// ErrNodeHasObservers 节点下存在流量监控
@@ -43,17 +43,27 @@ var (
 	ErrNodeOffline = New(10006, "节点已离线", http.StatusBadRequest)
 )
 
-// ==================== 转发相关错误 (101xx) ====================
+// ==================== 规则相关错误 (101xx) ====================
 
 var (
-	// ErrForwardNotFound 转发规则不存在
-	ErrForwardNotFound = New(10101, "转发规则不存在", http.StatusNotFound)
-	// ErrForwardPortExists 端口已被使用
-	ErrForwardPortExists = New(10102, "端口已被使用", http.StatusBadRequest)
-	// ErrForwardRunning 转发正在运行中
-	ErrForwardRunning = New(10103, "转发正在运行中，请先停止", http.StatusBadRequest)
-	// ErrForwardStartFailed 启动转发失败
-	ErrForwardStartFailed = New(10104, "启动转发失败", http.StatusInternalServerError)
+	// ErrRuleNotFound 规则不存在
+	ErrRuleNotFound = New(10101, "规则不存在", http.StatusNotFound)
+	// ErrRulePortExists 端口已被使用
+	ErrRulePortExists = New(10102, "端口已被使用", http.StatusBadRequest)
+	// ErrRuleRunning 规则正在运行中
+	ErrRuleRunning = New(10103, "规则正在运行中，请先停止", http.StatusBadRequest)
+	// ErrRuleStartFailed 启动规则失败
+	ErrRuleStartFailed = New(10104, "启动规则失败", http.StatusInternalServerError)
+	// ErrTunnelRequired 隧道转发需要选择隧道
+	ErrTunnelRequired = New(10105, "隧道转发类型需要选择隧道", http.StatusBadRequest)
+	// ErrRuleChainCreateFailed 创建规则链失败
+	ErrRuleChainCreateFailed = New(10106, "创建规则链失败", http.StatusInternalServerError)
+	// ErrNodeRequired 端口转发需要选择节点
+	ErrNodeRequired = New(10107, "端口转发类型需要选择节点", http.StatusBadRequest)
+	// ErrRuleTypeInvalid 无效的规则类型
+	ErrRuleTypeInvalid = New(10108, "无效的规则类型", http.StatusBadRequest)
+	// ErrTunnelChainNotFound 隧道链不存在
+	ErrTunnelChainNotFound = New(10109, "隧道未启动或链路不存在", http.StatusBadRequest)
 )
 
 // ==================== 隧道相关错误 (102xx) ====================
@@ -65,6 +75,18 @@ var (
 	ErrTunnelRunning = New(10202, "隧道正在运行中，请先停止", http.StatusBadRequest)
 	// ErrTunnelNameExists 隧道名称已存在
 	ErrTunnelNameExists = New(10203, "隧道名称已存在", http.StatusBadRequest)
+	// ErrTunnelInUse 隧道正在被规则使用
+	ErrTunnelInUse = New(10209, "隧道正在被规则使用，无法删除", http.StatusBadRequest)
+	// ErrTunnelRelayCreateFailed 创建隧道 Relay 服务失败
+	ErrTunnelRelayCreateFailed = New(10214, "创建隧道 Relay 服务失败", http.StatusInternalServerError)
+	// ErrTunnelHasRules 隧道被规则引用
+	ErrTunnelHasRules = New(10215, "隧道被规则引用，无法删除", http.StatusBadRequest)
+	// ErrEntryNodeOffline 入口节点离线
+	ErrEntryNodeOffline = New(10216, "入口节点已离线", http.StatusBadRequest)
+	// ErrExitNodeOffline 出口节点离线
+	ErrExitNodeOffline = New(10217, "出口节点已离线", http.StatusBadRequest)
+	// ErrTunnelChainCreateFailed 创建隧道 Chain 失败
+	ErrTunnelChainCreateFailed = New(10218, "创建隧道 Chain 失败", http.StatusInternalServerError)
 )
 
 // ==================== 认证相关错误 (103xx) ====================
@@ -152,8 +174,6 @@ var (
 	ErrExitNodeNoRelayPort = New(10208, "出口节点未配置 Relay 端口，请先在节点设置中配置", http.StatusBadRequest)
 	// ErrTunnelStartFailed 启动隧道失败
 	ErrTunnelStartFailed = New(10210, "启动隧道失败", http.StatusInternalServerError)
-	// ErrTunnelChainCreateFailed 创建隧道链失败
-	ErrTunnelChainCreateFailed = New(10211, "创建隧道链失败", http.StatusInternalServerError)
 	// ErrTunnelServiceCreateFailed 创建隧道服务失败
 	ErrTunnelServiceCreateFailed = New(10212, "创建隧道服务失败", http.StatusInternalServerError)
 	// ErrTunnelObserverCreateFailed 创建观察器失败
