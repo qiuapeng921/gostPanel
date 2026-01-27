@@ -72,9 +72,19 @@
               <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="总流量" width="100" align="center">
+        <el-table-column label="总流量" width="120" align="center">
           <template #default="{ row }">
             {{ formatBytes(row.total_bytes || 0) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="上传流量" width="120" align="center">
+          <template #default="{ row }">
+             <span style="color: #67c23a">{{ formatBytes(row.input_bytes || 0) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="下载流量" width="120" align="center">
+          <template #default="{ row }">
+             <span style="color: #409eff">{{ formatBytes(row.output_bytes || 0) }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100" align="center">

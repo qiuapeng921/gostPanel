@@ -109,9 +109,8 @@ install_bin() {
 # 生成配置文件
 configure() {
     local api_port="${1:-39000}"
-    local tcp_port="${2:-39001}"
-    local user="${3:-}"
-    local pass="${4:-}"
+    local user="${2:-}"
+    local pass="${3:-}"
     
     info "正在生成配置文件..."
 
@@ -129,13 +128,6 @@ configure() {
     
     mkdir -p "$BASE_PATH"
     cat > "$CONF_FILE" <<EOF
-services:
-- name: relay-tcp-tunnel
-  addr: ":$tcp_port"
-  handler:
-    type: relay
-  listener:
-    type: tcp
 api:
   addr: ":$api_port"
   pathPrefix: /api
@@ -147,7 +139,6 @@ EOF
     
     # 导出变量用于最后显示
     GLOBAL_API_PORT=$api_port
-    GLOBAL_TCP_PORT=$tcp_port
     GLOBAL_USER=$user
     GLOBAL_PASS=$pass
 }
@@ -203,10 +194,8 @@ show_info() {
     echo -e "  API 地址   : ${BLUE}http://${ip}:${GLOBAL_API_PORT}/api${PLAIN}"
     echo -e "  用户名     : ${BLUE}${GLOBAL_USER}${PLAIN}"
     echo -e "  密码       : ${BLUE}${GLOBAL_PASS}${PLAIN}"
-    echo -e "  TCP 转发端口: ${BLUE}${GLOBAL_TCP_PORT}${PLAIN}"
     echo -e "------------------------------------------------"
     echo -e "${YELLOW}  请使用以上信息在面板中添加节点。${PLAIN}"
-    echo -e "${YELLOW}  TCP 转发端口用于单跳或多跳隧道转发。${PLAIN}"
     echo -e "${GREEN}================================================${PLAIN}\n"
 }
 
@@ -226,19 +215,17 @@ main() {
     
     # 解析安装参数
     local api_port="${1:-39000}"
-    local tcp_port="${2:-39001}"
     local user="${3:-}"
     local pass="${4:-}"
     
     info "开始安装 Gost 节点..."
-    info "配置参数: API端口=$api_port, TCP端口=$tcp_port, 用户=$user"
+    info "配置参数: API端口=$api_port, 用户=$user"
     
     # 检查端口占用
     check_port "$api_port"
-    check_port "$tcp_port"
     
     install_bin
-    configure "$api_port" "$tcp_port" "$user" "$pass"
+    configure "$api_port" "$user" "$pass"
     setup_service
     show_info
 }

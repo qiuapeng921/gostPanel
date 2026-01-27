@@ -22,7 +22,7 @@ type Client struct {
 
 // Config 客户端配置
 type Config struct {
-	APIURL   string // API 地址，如 http://ip:port
+	APIURL   string
 	Username string
 	Password string
 	Timeout  time.Duration
@@ -35,14 +35,8 @@ func NewClient(cfg *Config) *Client {
 		timeout = 10 * time.Second
 	}
 
-	// 移除尾部斜杠
-	apiURL := cfg.APIURL
-	if len(apiURL) > 0 && apiURL[len(apiURL)-1] == '/' {
-		apiURL = apiURL[:len(apiURL)-1]
-	}
-
 	return &Client{
-		baseURL:  apiURL,
+		baseURL:  cfg.APIURL,
 		username: cfg.Username,
 		password: cfg.Password,
 		httpClient: &http.Client{

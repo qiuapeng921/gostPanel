@@ -434,7 +434,7 @@ const openDialog = (row = null) => {
       address: '127.0.0.1',
       port: 39000,
       username: 'admin',
-      password: 'zxc123',
+      password: '123456',
       remark: ''
     })
   }

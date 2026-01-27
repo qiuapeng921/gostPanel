@@ -23,7 +23,7 @@
                   <el-icon><Key /></el-icon>改密
                 </el-dropdown-item>
                 <el-dropdown-item divided @click="handleLogout">
-                  <el-icon><SwitchButton /></el-icon>登录
+                  <el-icon><SwitchButton /></el-icon>退出
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -72,13 +72,23 @@
       </el-aside>
 
       <!-- 主内容 (Content) -->
-      <el-main class="main">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
-      </el-main>
+      <div class="main-wrapper">
+        <el-main class="main">
+          <router-view v-slot="{ Component }">
+            <transition name="fade" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+        </el-main>
+        
+        <!-- 底部版权 (Footer) -->
+        <div class="footer">
+          <span>Copyright © 2023-2026 Gost Panel · </span>
+          <a href="https://github.com/code-gopher/gostPanel" target="_blank">
+            https://github.com/code-gopher/gostPanel
+          </a>
+        </div>
+      </div>
     </el-container>
 
     <!-- 修改密码对话框 -->
@@ -160,8 +170,7 @@ const menuItems = [
   { path: '/rules', title: '规则管理', icon: Switch },
   { path: '/tunnels', title: '隧道管理', icon: Connection },
   { path: '/logs', title: '操作日志', icon: Document },
-  { path: '/system', title: '系统设置', icon: Setting },
-  { path: '/about', title: '关于系统', icon: InfoFilled }
+  { path: '/system', title: '系统管理', icon: Setting }
 ]
 
 // 侧边栏折叠
@@ -291,11 +300,19 @@ const handleLogout = async () => {
   height: 100%;
 }
 
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .main {
   flex: 1;
   background: transparent;
   padding: 0;
   margin: 16px;
+  margin-bottom: 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -372,6 +389,24 @@ const handleLogout = async () => {
   color: #409eff;
   position: relative;
   z-index: 1;
+}
+
+.footer {
+  text-align: center;
+  padding: 16px;
+  color: #909399;
+  font-size: 13px;
+  background-color: #f0f2f5;
+}
+
+.footer a {
+  color: #909399;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.footer a:hover {
+  color: #409eff;
 }
 
 /* Transitions */

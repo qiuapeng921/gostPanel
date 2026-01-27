@@ -245,7 +245,7 @@ func (s *TunnelService) Start(id uint, userID uint, username string, ip, userAge
 
 	// 步骤1：在出口节点创建 Relay 服务
 	exitClient := utils.GetGostClient(exitNode)
-	relayServiceName := fmt.Sprintf("tunnel-%d-relay", tunnel.ID)
+	relayServiceName := fmt.Sprintf("relay-tunnel-%d", tunnel.ID)
 
 	relaySvc := &gost.ServiceConfig{
 		Name: relayServiceName,
