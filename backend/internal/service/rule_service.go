@@ -284,11 +284,11 @@ func (s *RuleService) Start(id uint, userID uint, username string, ip, userAgent
 
 	// 根据规则类型处理
 	if rule.Type == model.RuleTypeTunnel {
-		if err = s.startTunnelRule(rule, node, client, serviceName, userID, username, ip, userAgent); err != nil {
+		if err = s.startTunnelRule(rule, client, serviceName); err != nil {
 			return err
 		}
 	} else {
-		if err = s.startForwardRule(rule, node, client, serviceName); err != nil {
+		if err = s.startForwardRule(rule, client, serviceName); err != nil {
 			return err
 		}
 	}
@@ -308,13 +308,13 @@ func (s *RuleService) Start(id uint, userID uint, username string, ip, userAgent
 }
 
 // startForwardRule 启动端口转发规则（直连目标）
-func (s *RuleService) startForwardRule(rule *model.GostRule, node *model.GostNode, client *gost.Client, serviceName string) error {
+func (s *RuleService) startForwardRule(rule *model.GostRule, client *gost.Client, serviceName string) error {
 	// 端口转发没有 Chain ID
 	return s.buildAndStartService(client, rule, serviceName, "")
 }
 
 // startTunnelRule 启动隧道转发规则（通过隧道链路）
-func (s *RuleService) startTunnelRule(rule *model.GostRule, node *model.GostNode, client *gost.Client, serviceName string, userID uint, username string, ip, userAgent string) error {
+func (s *RuleService) startTunnelRule(rule *model.GostRule, client *gost.Client, serviceName string) error {
 	if rule.TunnelID == nil {
 		return errors.ErrTunnelRequired
 	}
