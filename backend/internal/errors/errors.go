@@ -86,7 +86,9 @@ var (
 	// ErrExitNodeOffline 出口节点离线
 	ErrExitNodeOffline = New(10217, "出口节点已离线", http.StatusBadRequest)
 	// ErrTunnelChainCreateFailed 创建隧道 Chain 失败
-	ErrTunnelChainCreateFailed = New(10218, "创建隧道 Chain 失败", http.StatusInternalServerError)
+	ErrTunnelChainCreateFailed = New(10218, "创建隧道Chain失败", http.StatusInternalServerError)
+	// ErrTunnelObserverCreateFailed 创建观察器失败
+	ErrTunnelObserverCreateFailed = New(10213, "创建观察器失败", http.StatusInternalServerError)
 )
 
 // ==================== 认证相关错误 (103xx) ====================
