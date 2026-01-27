@@ -244,7 +244,7 @@ import { Plus, Search, Refresh, CopyDocument, Management, Link, User, Lock } fro
 import { getNodeList, createNode, updateNode, deleteNode, getNodeConfig } from '@/api/node'
 
 // 安装脚本 URL（GitHub Raw）
-const INSTALL_SCRIPT_URL = 'https://raw.githubusercontent.com/qiuapeng921/gostPanel/master/scripts/install_node.sh'
+const INSTALL_SCRIPT_URL = 'https://raw.githubusercontent.com/code-gopher/gostPanel/master/scripts/install_node.sh'
 
 // 列表数据
 const nodeList = ref([])
@@ -300,7 +300,7 @@ const installCommand = computed(() => {
   if (!currentInstallNode.value) return ''
   
   const node = currentInstallNode.value
-  const port = extractPort(node.api_url)
+  const port = node.port
   const username = node.username
   const password = node.password
   

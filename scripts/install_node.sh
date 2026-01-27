@@ -215,8 +215,8 @@ main() {
     
     # 解析安装参数
     local api_port="${1:-39000}"
-    local user="${3:-}"
-    local pass="${4:-}"
+    local user="${2:-}"
+    local pass="${3:-}"
     
     info "开始安装 Gost 节点..."
     info "配置参数: API端口=$api_port, 用户=$user"
