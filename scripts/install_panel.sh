@@ -138,10 +138,18 @@ EOF
     
     # 获取本机外网IP
     PUBLIC_IP=$(curl -s https://api.ipify.org || curl -s ifconfig.me || echo "127.0.0.1")
+
+    # 获取本机内网IP
+    INTERNAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+    if [ -z "$INTERNAL_IP" ]; then
+        INTERNAL_IP=$(ip -o route get to 8.8.8.8 2>/dev/null | sed -n 's/.*src \([0-9.]\+\).*/\1/p')
+    fi
+    [ -z "$INTERNAL_IP" ] && INTERNAL_IP="127.0.0.1"
     
     echo -e "\n${GREEN}==============================================${NC}"
     echo -e "   Gost Panel 安装成功！"
-    echo -e "   访问地址: http://${PUBLIC_IP}:${FINAL_PORT}"
+    echo -e "   外网访问: http://${PUBLIC_IP}:${FINAL_PORT}"
+    echo -e "   内网访问: http://${INTERNAL_IP}:${FINAL_PORT}"
     echo -e "   账号: admin"
     echo -e "   密码: admin123"
     echo -e "${GREEN}==============================================${NC}\n"
