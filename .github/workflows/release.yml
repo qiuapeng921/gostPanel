@@ -48,8 +48,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            backend/*.tar.gz
-            backend/*.zip
+            *.tar.gz
+            *.zip
           generate_release_notes: true
           draft: false
           prerelease: false
