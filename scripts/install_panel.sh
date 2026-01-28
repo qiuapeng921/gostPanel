@@ -41,8 +41,8 @@ function error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 function check_memory() {
     total_mem=$(free -m | grep Mem | awk '{print $2}')
-    if [ "$total_mem" -le 512 ]; then
-        error "系统内存不足 ($total_mem MB)。二进制部署模式要求内存必须大于 512MB。"
+    if [ "$total_mem" -le 128 ]; then
+        error "系统内存不足 ($total_mem MB)。二进制部署模式要求内存必须大于 128MB。"
     fi
     info "内存检查通过: $total_mem MB"
 }
