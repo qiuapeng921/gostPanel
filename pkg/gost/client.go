@@ -79,7 +79,8 @@ type HandlerConfig struct {
 
 // ListenerConfig 监听器配置
 type ListenerConfig struct {
-	Type string `json:"type"`
+	Type     string         `json:"type"`
+	Metadata map[string]any `json:"metadata,omitempty"` // 元数据配置
 }
 
 // ForwarderConfig 转发器配置
@@ -395,16 +396,16 @@ func BuildTCPForwardService(name string, listenPort int, targets []string, strat
 		Name: name,
 		Addr: fmt.Sprintf(":%d", listenPort),
 		Handler: &HandlerConfig{
-			Type: "rtcp",
+			Type: "tcp",
 		},
 		Listener: &ListenerConfig{
-			Type: "rtcp",
+			Type: "tcp",
 		},
 		Forwarder: &ForwarderConfig{
 			Nodes: nodes,
 			Selector: &SelectorConfig{
 				Strategy:    strategy,
-				MaxFails:    1,
+				MaxFails:    3,
 				FailTimeout: 30 * time.Second,
 			},
 		},
@@ -430,16 +431,21 @@ func BuildUDPForwardService(name string, listenPort int, targets []string, strat
 		Name: name,
 		Addr: fmt.Sprintf(":%d", listenPort),
 		Handler: &HandlerConfig{
-			Type: "rudp",
+			Type: "udp",
 		},
 		Listener: &ListenerConfig{
-			Type: "rudp",
+			Type: "udp",
+			Metadata: map[string]any{
+				"keepAlive":       true,
+				"ttl":             "180s",
+				"readBufferSize ": 1024 * 16,
+			},
 		},
 		Forwarder: &ForwarderConfig{
 			Nodes: nodes,
 			Selector: &SelectorConfig{
 				Strategy:    strategy,
-				MaxFails:    1,
+				MaxFails:    3,
 				FailTimeout: 30 * time.Second,
 			},
 		},
